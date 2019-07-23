@@ -26,7 +26,9 @@ Application having below three Rest endpoints:
  Tomcat 8
  Maven 4
  Swagger2
- Junit 4
+ Junit 4 Eclipse
+ Eclipse
+
 
 
 ## Build, Deployment & Sanity testing Steps:
@@ -41,9 +43,9 @@ Application having below three Rest endpoints:
     
     | User Name  | Password  |   User Role            |
     | -----------| --------- | ---------------------  |
-    | rrjuser    | rrj!nd1a  | ROLE_USER, ROLE_ADMIN  |
-    | rrjadmin   | rrj!nd1a  | ROLE_USER |
-    | rrj        | rrj!nd1a  | ROLE_USER |
+    | rrjuser    | rrj!nd1a  | ROLE_USER |
+    | rrjadmin   | rrj!nd1a  | ROLE_ADMIN |
+    | rrj        | rrj!nd1a  | ROLE_USER, ROLE_ADMIN  |
     
 ## Assumption 
 
@@ -56,4 +58,3 @@ userDetailsService: all user details are defind (hard-code) in contex file and i
 ## Swagger 
 
 Provided the YAML file for swagger documnetation i.e. bank-transaction-services-swagger.yaml
-
