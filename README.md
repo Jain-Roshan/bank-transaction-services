@@ -26,7 +26,7 @@ Application having below three Rest endpoints:
  Tomcat 8
  Maven 4
  Swagger2
- Junit 4 Eclipse
+ Junit 4
  Eclipse
 
 
@@ -57,4 +57,4 @@ userDetailsService: all user details are defind (hard-code) in contex file and i
 
 ## Swagger 
 
-Provided the YAML file for swagger documnetation i.e. bank-transaction-services-swagger.yaml
+Provided the YAML and JSON file for swagger documnetation i.e. bank-transaction-services-swagger.yaml or bank-transaction-services-swagger.json
