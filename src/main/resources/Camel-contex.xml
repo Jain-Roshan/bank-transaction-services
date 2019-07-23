@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:spring-security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+	   http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+	   http://camel.apache.org/schema/spring-security http://camel.apache.org/schema/spring-security/camel-spring-security.xsd
+       http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd">
+	
+	<bean class="com.bank.transaction.controller.TransactionRequestController"
+		id="transactionControllerFrom" />
+	<bean class="com.bank.transaction.controller.TransactionResponseController"
+		id="transactionResponseControllerTo" />
+	<bean class="com.bank.transaction.controller.TransactionByTypeRequestController"
+		id="transactionByTypeControllerFrom" />
+	<bean class="com.bank.transaction.controller.TransactionByTypeResponseController"
+		id="transactionByTypeResponseControllerTo" />
+	<bean class="com.bank.transaction.controller.TransactionTotalAmountResponseController"
+		id="transactionTotalAmountResponseControllerTo" />     
+     <bean class="com.bank.transaction.controller.BadRequestServiceController"
+		id="badRequestServiceController" />         
+          
+	 <!-- <context:component-scan base-package="com.bank.transaction.controller" /> -->
+	 
+	 <camel:camelContext id="SERVICES_CONSUMER"  xmlns="http://camel.apache.org/schema/spring">
+		<!-- Open Bank end point access -->
+		<camel:route id="current-accounts-transactions-openbank" streamCache="true">
+            <camel:from uri="direct:/v1/current-accounts/openbank/transactions"/>
+            <camel:removeHeaders pattern="CamelHttp*" excludePattern="CamelHttpMethod"/>
+            <camel:log message="current-accounts-transaction_l2"/>
+            <camel:setHeader headerName="HttpMethod">
+                <camel:constant>GET</camel:constant>
+            </camel:setHeader>
+            <camel:setHeader headerName="Content-Type">
+                <camel:constant>application/json</camel:constant>
+            </camel:setHeader>
+            <camel:setHeader headerName="CamelHttpHeader">
+                <camel:constant>GET</camel:constant>
+            </camel:setHeader>
+			<camel:setHeader headerName="CamelHttpMethod">
+                <camel:constant>GET</camel:constant>
+            </camel:setHeader>
+            <camel:recipientList>
+			    <camel:simple>https://apisandbox.openbankproject.com/obp/v1.2.1/banks/rbs/accounts/${header.accountId}/public/transactions</camel:simple>
+			</camel:recipientList> 
+			<camel:onException>
+                <camel:exception>org.apache.camel.component.http.HttpOperationFailedException</camel:exception>
+                <camel:handled>
+                    <camel:constant>true</camel:constant>
+                </camel:handled>
+                <camel:setHeader headerName="CamelHttpResponseCode">
+                    <camel:simple>${exception.statusCode}</camel:simple>
+                </camel:setHeader>
+                <camel:setBody>
+                    <camel:simple>${exception.responseBody}</camel:simple>
+                </camel:setBody>
+                <camel:to uri="direct:/badRequestService"/>
+            </camel:onException> 
+        </camel:route>
+        
+        <camel:route id="badRequestService" streamCache="true">
+            <camel:from uri="direct:/badRequestService"/>
+            <camel:process ref="badRequestServiceController"/>
+        </camel:route>
+        
+	    <camel:route id="current-accounts-transactions" streamCache="true">
+	            <camel:from uri="servlet:/v1/current-accounts/transactions"/>
+	            <policy ref="user">
+	            <camel:log message="Got Request current-accounts-transaction"/>
+	            <camel:process ref="transactionControllerFrom"/>
+	            <camel:choice>
+	                <camel:when>
+	                    <camel:simple>${header.accountId} == 'N' || ${header.sysoutser} == 'Y'</camel:simple>
+	                </camel:when>
+	                <camel:otherwise>
+	                    <camel:log message="Got Request ${body}"/>
+						<camel:to uri="direct:/v1/current-accounts/openbank/transactions"/>
+	           			<camel:process ref="transactionResponseControllerTo"/>
+	           			<camel:log message="Got Response ${body}" loggingLevel="INFO"/>
+	                </camel:otherwise>
+            	</camel:choice>
+            	</policy>
+            	<onException>
+				      <exception>org.apache.camel.CamelAuthorizationException</exception>
+				      <handled>
+				        <constant>true</constant>
+				      </handled>
+				      <transform>
+				         <simple>{"statusCode":403,"message": "Access Denied with the Policy of ${exception.policyId}!" }</simple>
+				      </transform>
+    			</onException>
+	    </camel:route>
+	    
+	    <camel:route id="current-accounts-transaction-by-type" streamCache="true">
+	            <camel:from uri="servlet:/v1/current-accounts/transactionsbytype"/>
+	            <policy ref="user">
+	            <camel:log message="Got Request current-accounts-transaction"/>
+	            <camel:process ref="transactionByTypeControllerFrom"/>
+	            <camel:choice>
+	                <camel:when>
+	                    <camel:simple>${header.transType} == 'N' || ${header.accountId} == 'N' || ${header.sysoutser} == 'Y'</camel:simple>
+	                </camel:when>
+	                <camel:otherwise>
+	                    <camel:log message="Got Request ${body}"/>
+						<camel:to uri="direct:/v1/current-accounts/openbank/transactions"/>
+           				<camel:process ref="transactionByTypeResponseControllerTo"/>
+           				<camel:log message="Got Response ${body}" loggingLevel="INFO"/>
+	                </camel:otherwise>
+            	</camel:choice>
+            	</policy>
+            	<onException>
+				      <exception>org.apache.camel.CamelAuthorizationException</exception>
+				      <handled>
+				        <constant>true</constant>
+				      </handled>
+				      <transform>
+				        <simple>{"statusCode":403,"message": "Access Denied with the Policy of ${exception.policyId}!" }</simple>
+				      </transform>
+    			</onException>
+	    </camel:route>
+	    
+	    <camel:route id="current-accounts-transaction-total-amount" streamCache="true">
+	            <camel:from uri="servlet:/v1/current-accounts/transaction/total-amount"/>
+	            <policy ref="user">
+	            <camel:log message="Got Request current-accounts-transaction"/>
+	            <camel:process ref="transactionByTypeControllerFrom"/>
+	            <camel:choice>
+	                <camel:when>
+	                    <camel:simple>${header.transType} == 'N' || ${header.accountId} == 'N' || ${header.sysoutser} == 'Y'</camel:simple>
+	                </camel:when>
+	                <camel:otherwise>
+	                    <camel:log message="Got Request ${body}"/>
+						<camel:to uri="direct:/v1/current-accounts/openbank/transactions"/>
+           				<camel:process ref="transactionTotalAmountResponseControllerTo"/>
+           				<camel:log message="Got Response ${body}" loggingLevel="INFO"/>
+	                </camel:otherwise>
+            	</camel:choice>
+            	</policy>
+            	<onException>
+				      <exception>org.apache.camel.CamelAuthorizationException</exception>
+				      <handled>
+				        <constant>true</constant>
+				      </handled>
+				      <transform>
+				        <simple>{"statusCode":403,"message": "Access Denied with the Policy of ${exception.policyId}!" }</simple>
+				      </transform>
+    			</onException>
+	    </camel:route>
+    </camel:camelContext>
+</beans>
