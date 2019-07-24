@@ -23,6 +23,13 @@ import com.bank.model.Transactions;
 public final class ExchangeUtil {
 	private static ObjectMapper objectMapper = new ObjectMapper();
 	
+	/**
+	 * @param exchange
+	 * @param parameterName
+	 * @param defaultValue
+	 * @return
+	 * @throws URISyntaxException
+	 */
 	public static String getQueryParameter(Exchange exchange, String parameterName, String defaultValue)
 			throws URISyntaxException {
 		Map<String, Object> queryParameters = getQueryParameters(exchange);
@@ -34,6 +41,11 @@ public final class ExchangeUtil {
 		return parameterValue;
 	}
 
+	/**
+	 * @param exchange
+	 * @return
+	 * @throws URISyntaxException
+	 */
 	private static Map<String, Object> getQueryParameters(Exchange exchange) throws URISyntaxException {
 		return URISupport.parseQuery((String) exchange.getIn().getHeader("CamelHttpQuery", String.class));
 	}
@@ -60,7 +72,6 @@ public final class ExchangeUtil {
      * @throws IOException 
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
-     * @throws BaseControllerException
      */
     public static String convertToJson(Object object) throws JsonGenerationException, JsonMappingException, IOException 
     {
@@ -75,12 +86,10 @@ public final class ExchangeUtil {
     /**
      * @param json          JSON to be converted to POJO
      * @param typeReference Type of Object to which JSON to be converted
-     * @param <T>
-     * @return <T> Converted Customer object
+     * @return Transactions
      * @throws IOException 
      * @throws JsonMappingException 
      * @throws JsonGenerationException 
-     * @throws BaseControllerException
      */
     public static Transactions convertToPojo(String json) throws JsonGenerationException, JsonMappingException, IOException 
     {
